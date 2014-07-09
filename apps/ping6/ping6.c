@@ -57,7 +57,7 @@
 
 static struct etimer ping6_periodic_timer;
 static uint8_t count = 0;
-static char command[20];
+static char command[100];
 static uint16_t addr[8];
 uip_ipaddr_t dest_addr;
 
@@ -69,6 +69,8 @@ AUTOSTART_PROCESSES(&ping6_process);
 static uint8_t
 ping6handler(process_event_t ev, process_data_t data)
 {
+  int unused_result __attribute__((unused));
+
   if(count == 0){
 #if MACDEBUG
     // Setup destination address.
@@ -89,16 +91,18 @@ ping6handler(process_event_t ev, process_data_t data)
     /** \note the scanf here is blocking (the all stack is blocked waiting
      *  for user input). This is far from ideal and could be improved
      */
-    scanf("%s", command);
+    unused_result = scanf("%s", command);
 
     if(strcmp(command,"ping6") != 0){
-      PRINTF("> invalid command\n");
+      PRINTF("> invalid command %s\n", command);
       return 0;
     }
 
     if(scanf(" %04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x",
-             &addr[0],&addr[1],&addr[2],&addr[3],
-             &addr[4],&addr[5],&addr[6],&addr[7]) == 8){
+             (unsigned int *) &addr[0], (unsigned int *) &addr[1],
+             (unsigned int *) &addr[2], (unsigned int *) &addr[3],
+             (unsigned int *) &addr[4], (unsigned int *) &addr[5],
+             (unsigned int *) &addr[6], (unsigned int *) &addr[7]) == 8){
 
       uip_ip6addr(&dest_addr, addr[0], addr[1],addr[2],
                   addr[3],addr[4],addr[5],addr[6],addr[7]);
@@ -123,8 +127,10 @@ ping6handler(process_event_t ev, process_data_t data)
     UIP_ICMP_BUF->type = ICMP6_ECHO_REQUEST;
     UIP_ICMP_BUF->icode = 0;
     /* set identifier and sequence number to 0 */
-    memset((uint8_t *)UIP_ICMP_BUF + UIP_ICMPH_LEN, 0, 4);
-    /* put one byte of data */
+    memset((uint8_t *)UIP_ICMP_BUF + UIP_ICMPH_LEN, 0, 3);
+    /* set sequence number to the value of 'count' */
+    memset((uint8_t *)UIP_ICMP_BUF + UIP_ICMPH_LEN + 3, count, 1);
+    /* set data byte(s) to the value of 'count' */
     memset((uint8_t *)UIP_ICMP_BUF + UIP_ICMPH_LEN + UIP_ICMP6_ECHO_REQUEST_LEN,
            count, PING6_DATALEN);
 
@@ -139,9 +145,9 @@ ping6handler(process_event_t ev, process_data_t data)
 
     PRINTF("Sending Echo Request to");
     PRINT6ADDR(&UIP_IP_BUF->destipaddr);
-    PRINTF("from");
+    PRINTF("\nfrom");
     PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
-    PRINTF("\n");
+    PRINTF("icmp_seq=%d\n", count);
     UIP_STAT(++uip_stat.icmp.sent);
 
     tcpip_ipv6_output();

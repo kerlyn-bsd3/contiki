@@ -1,5 +1,5 @@
 all: er-example-server er-example-client
-# use target "er-plugtest-server" explicitly when requried 
+# use target "er-plugtest-server" explicitly when required
 
 CONTIKI=../..
 
@@ -7,7 +7,6 @@ CONTIKI=../..
 WITH_UIP6=1
 UIP_CONF_IPV6=1
 CFLAGS += -DUIP_CONF_IPV6=1
-CFLAGS += -DUIP_CONF_IPV6_RPL=1
 
 CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 
@@ -39,7 +38,7 @@ APPS += rest-engine
 
 include $(CONTIKI)/Makefile.include
 
-# minimal-net target is currently broken in Contiki
+# minimal-net target
 ifeq ($(TARGET), minimal-net)
 CFLAGS += -DHARD_CODED_ADDRESS=\"fdfd::10\"
 ${info INFO: er-example compiling with large buffers}
@@ -47,6 +46,8 @@ CFLAGS += -DUIP_CONF_BUFFER_SIZE=1300
 CFLAGS += -DREST_MAX_CHUNK_SIZE=1024
 CFLAGS += -DCOAP_MAX_HEADER_SIZE=176
 CFLAGS += -DUIP_CONF_IPV6_RPL=0
+else
+CFLAGS += -DUIP_CONF_IPV6_RPL=1
 endif
 
 # optional rules to get assembly

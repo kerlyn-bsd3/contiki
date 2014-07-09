@@ -244,7 +244,7 @@ uip_ds6_prefix_add(uip_ipaddr_t *ipaddr, uint8_t ipaddrlen,
     locprefix->plifetime = ptime;
     PRINTF("Adding prefix ");
     PRINT6ADDR(&locprefix->ipaddr);
-    PRINTF("length %u, flags %x, Valid lifetime %lx, Preffered lifetime %lx\n",
+    PRINTF("/%u, flags %x, Valid lifetime %lx, Preferred lifetime %lx\n",
        ipaddrlen, flags, vtime, ptime);
     return locprefix;
   } else {
@@ -266,15 +266,18 @@ uip_ds6_prefix_add(uip_ipaddr_t *ipaddr, uint8_t ipaddrlen,
     locprefix->isused = 1;
     uip_ipaddr_copy(&locprefix->ipaddr, ipaddr);
     locprefix->length = ipaddrlen;
-    if(interval != 0) {
+    if(interval == 0) {
+      locprefix->isinfinite = 1;
+    } else {
       stimer_set(&(locprefix->vlifetime), interval);
       locprefix->isinfinite = 0;
-    } else {
-      locprefix->isinfinite = 1;
     }
     PRINTF("Adding prefix ");
     PRINT6ADDR(&locprefix->ipaddr);
-    PRINTF("length %u, vlifetime%lu\n", ipaddrlen, interval);
+    PRINTF("/%u, vlifetime%lu\n", ipaddrlen, interval);
+    return locprefix;
+  } else {
+    PRINTF("No more space in Prefix list\n");
   }
   return NULL;
 }
@@ -591,7 +594,7 @@ uip_ds6_dad(uip_ds6_addr_t *addr)
    * If we arrive here it means DAD succeeded, otherwise the dad process
    * would have been interrupted in ds6_dad_ns/na_input
    */
-  PRINTF("DAD succeeded, ipaddr:");
+  PRINTF("DAD succeeded, ipaddr ");
   PRINT6ADDR(&addr->ipaddr);
   PRINTF("\n");
 
@@ -682,8 +685,8 @@ uip_ds6_send_rs(void)
     etimer_set(&uip_ds6_timer_rs,
                UIP_ND6_RTR_SOLICITATION_INTERVAL * CLOCK_SECOND);
   } else {
-    PRINTF("Router found ? (boolean): %u\n",
-           (uip_ds6_defrt_choose() != NULL));
+    PRINTF("Router found? %s\n",
+           (uip_ds6_defrt_choose() != NULL) ? "YES" : "NO");
     etimer_stop(&uip_ds6_timer_rs);
   }
   return;

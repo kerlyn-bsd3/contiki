@@ -294,6 +294,7 @@ tapdev_cleanup_darwin_routes(void)
 void
 tapdev_init(void)
 {
+  int unused_result __attribute__((unused));
   char buf[1024];
   
   fd = open(DEVTAP, O_RDWR);
@@ -331,7 +332,7 @@ tapdev_init(void)
   */
   /* freebsd */
   snprintf(buf, sizeof(buf), "ifconfig tap0 up");
-  system(buf);
+  unused_result = system(buf);
   printf("%s\n", buf);
   
   /*  */

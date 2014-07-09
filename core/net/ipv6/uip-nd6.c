@@ -149,7 +149,7 @@ ns_input(void)
   PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
   PRINTF(" to ");
   PRINT6ADDR(&UIP_IP_BUF->destipaddr);
-  PRINTF(" with target address");
+  PRINTF(" with target address ");
   PRINT6ADDR((uip_ipaddr_t *) (&UIP_ND6_NS_BUF->tgtipaddr));
   PRINTF("\n");
   UIP_STAT(++uip_stat.nd6.recv);
@@ -243,7 +243,7 @@ ns_input(void)
     if(uip_ds6_is_my_addr(&UIP_IP_BUF->srcipaddr)) {
         /**
          * \NOTE do we do something here? we both are using the same address.
-         * If we are doing dad, we could cancel it, though we should receive a
+         * If we are doing DAD, we could cancel it, though we should receive a
          * NA in response of DAD NS we sent, hence DAD will fail anyway. If we
          * were not doing DAD, it means there is a duplicate in the network!
          */
@@ -348,11 +348,15 @@ uip_nd6_ns_output(uip_ipaddr_t * src, uip_ipaddr_t * dest, uip_ipaddr_t * tgt)
    * check if we add a SLLAO option: for DAD, MUST NOT, for NUD, MAY
    * (here yes), for Address resolution , MUST 
    */
-  if(!(uip_ds6_is_my_addr(tgt))) {
-    if(src != NULL) {
-      uip_ipaddr_copy(&UIP_IP_BUF->srcipaddr, src);
-    } else {
+  if(uip_ds6_is_my_addr(tgt)) {
+    uip_create_unspecified(&UIP_IP_BUF->srcipaddr);
+    UIP_IP_BUF->len[1] = UIP_ICMPH_LEN + UIP_ND6_NS_LEN;
+    uip_len = UIP_IPH_LEN + UIP_ICMPH_LEN + UIP_ND6_NS_LEN;
+  } else {
+    if(src == NULL) {
       uip_ds6_select_src(&UIP_IP_BUF->srcipaddr, &UIP_IP_BUF->destipaddr);
+    } else {
+      uip_ipaddr_copy(&UIP_IP_BUF->srcipaddr, src);
     }
     if (uip_is_addr_unspecified(&UIP_IP_BUF->srcipaddr)) {
       PRINTF("Dropping NS due to no suitable source address\n");
@@ -367,21 +371,17 @@ uip_nd6_ns_output(uip_ipaddr_t * src, uip_ipaddr_t * dest, uip_ipaddr_t * tgt)
 
     uip_len =
       UIP_IPH_LEN + UIP_ICMPH_LEN + UIP_ND6_NS_LEN + UIP_ND6_OPT_LLAO_LEN;
-  } else {
-    uip_create_unspecified(&UIP_IP_BUF->srcipaddr);
-    UIP_IP_BUF->len[1] = UIP_ICMPH_LEN + UIP_ND6_NS_LEN;
-    uip_len = UIP_IPH_LEN + UIP_ICMPH_LEN + UIP_ND6_NS_LEN;
   }
 
   UIP_ICMP_BUF->icmpchksum = 0;
   UIP_ICMP_BUF->icmpchksum = ~uip_icmp6chksum();
 
   UIP_STAT(++uip_stat.nd6.sent);
-  PRINTF("Sending NS to");
+  PRINTF("Sending NS to ");
   PRINT6ADDR(&UIP_IP_BUF->destipaddr);
-  PRINTF("from");
+  PRINTF(" from ");
   PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
-  PRINTF("with target address");
+  PRINTF(" with target address ");
   PRINT6ADDR(tgt);
   PRINTF("\n");
   return;
@@ -412,11 +412,11 @@ na_input(void)
   uint8_t is_solicited;
   uint8_t is_override;
 
-  PRINTF("Received NA from");
+  PRINTF("Received NA from ");
   PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
-  PRINTF("to");
+  PRINTF(" to ");
   PRINT6ADDR(&UIP_IP_BUF->destipaddr);
-  PRINTF("with target address");
+  PRINTF(" with target address ");
   PRINT6ADDR((uip_ipaddr_t *) (&UIP_ND6_NA_BUF->tgtipaddr));
   PRINTF("\n");
   UIP_STAT(++uip_stat.nd6.recv);
@@ -564,9 +564,9 @@ static void
 rs_input(void)
 {
 
-  PRINTF("Received RS from");
+  PRINTF("Received RS from ");
   PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
-  PRINTF("to");
+  PRINTF(" to ");
   PRINT6ADDR(&UIP_IP_BUF->destipaddr);
   PRINTF("\n");
   UIP_STAT(++uip_stat.nd6.recv);
@@ -659,7 +659,7 @@ uip_nd6_ra_output(uip_ipaddr_t * dest)
   if(dest == NULL) {
     uip_create_linklocal_allnodes_mcast(&UIP_IP_BUF->destipaddr);
   } else {
-    /* For sollicited RA */
+    /* For solicited RA */
     uip_ipaddr_copy(&UIP_IP_BUF->destipaddr, dest);
   }
   uip_ds6_select_src(&UIP_IP_BUF->srcipaddr, &UIP_IP_BUF->destipaddr);
@@ -724,9 +724,9 @@ uip_nd6_ra_output(uip_ipaddr_t * dest)
   UIP_ICMP_BUF->icmpchksum = ~uip_icmp6chksum();
 
   UIP_STAT(++uip_stat.nd6.sent);
-  PRINTF("Sending RA to");
+  PRINTF("Sending RA to ");
   PRINT6ADDR(&UIP_IP_BUF->destipaddr);
-  PRINTF("from");
+  PRINTF(" from ");
   PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
   PRINTF("\n");
   return;
@@ -766,9 +766,9 @@ uip_nd6_rs_output(void)
   UIP_ICMP_BUF->icmpchksum = ~uip_icmp6chksum();
 
   UIP_STAT(++uip_stat.nd6.sent);
-  PRINTF("Sendin RS to");
+  PRINTF("Sending RS to ");
   PRINT6ADDR(&UIP_IP_BUF->destipaddr);
-  PRINTF("from");
+  PRINTF(" from ");
   PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
   PRINTF("\n");
   return;
@@ -786,9 +786,9 @@ uip_nd6_rs_output(void)
 void
 ra_input(void)
 {
-  PRINTF("Received RA from");
+  PRINTF("Received RA from ");
   PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
-  PRINTF("to");
+  PRINTF(" to ");
   PRINT6ADDR(&UIP_IP_BUF->destipaddr);
   PRINTF("\n");
   UIP_STAT(++uip_stat.nd6.recv);
@@ -835,7 +835,7 @@ ra_input(void)
                               (uip_lladdr_t *)&nd6_opt_llao[UIP_ND6_OPT_DATA_OFFSET],
 			      1, NBR_STALE);
       } else {
-        uip_lladdr_t *lladdr = uip_ds6_nbr_get_ll(nbr);
+        uip_lladdr_t *lladdr = (uip_lladdr_t *) uip_ds6_nbr_get_ll(nbr);
         if(nbr->state == NBR_INCOMPLETE) {
           nbr->state = NBR_STALE;
         }

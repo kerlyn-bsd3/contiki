@@ -562,7 +562,15 @@ tcpip_ipv6_output(void)
     /* Next hop determination */
     nbr = NULL;
 
-    /* We first check if the destination address is on our immediate
+    /* There's a non-zero chance the app (e.g. ping6) is sending
+     * to a local address...
+     */
+    if (uip_ds6_is_my_addr(&UIP_IP_BUF->destipaddr)) {
+      uip_input();
+      return;
+    }
+
+    /* We next check if the destination address is on our immediate
        link. If so, we simply use the destination address as our
        nexthop address. */
     if(uip_ds6_is_addr_onlink(&UIP_IP_BUF->destipaddr)){
@@ -708,7 +716,7 @@ tcpip_ipv6_output(void)
       /*
        * Send the queued packets from here, may not be 100% perfect though.
        * This happens in a few cases, for example when instead of receiving a
-       * NA after sendiong a NS, you receive a NS with SLLAO: the entry moves
+       * NA after sending a NS, you receive a NS with SLLAO: the entry moves
        * to STALE, and you must both send a NA and the queued packet.
        */
       if(uip_packetqueue_buflen(&nbr->packethandle) != 0) {
